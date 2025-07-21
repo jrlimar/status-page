@@ -1,0 +1,56 @@
+version: '3.8'
+
+networks:
+  status-network:
+    driver: bridge
+
+services:
+
+  kener.status.ui:
+    image: kener-status-ui
+    container_name: kener-status-ui
+    build:
+      context: .
+      dockerfile: UI/kener/Dockerfile
+    ports:
+      - '3000:3000/tcp'
+    environment:
+      TZ: Etc/UTC
+      KENER_SECRET_KEY: xpto123   
+      ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@kener.status.db.postgres:5432/kener_status_db
+    networks:
+        - status-network
+    restart: on-failure
+    depends_on:
+      - kener.status.db.postgres
+
+  kener.status.db.postgres:
+    image: postgres:alpine
+    container_name: kener-status-db-postgres
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres  
+        POSTGRES_DB: kener_status_db
+        ports: "5432:5432"
+    restart: unless-stopped 
+    ports:
+        - "5432:5432"
+    networks:
+        - status-network
+
+  uptime-kuma:
+    container_name: uptime-uptime
+    image: uptime-uptime:1.0
+    restart: always
+    build:
+      context: .
+      dockerfile: UI/uptime/Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./UI/uptime/uptime-kuma-data:/app/data      
+
+volumes:
+  data:
+    name: kener_status_db 
